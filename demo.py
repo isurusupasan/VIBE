@@ -28,6 +28,8 @@ import numpy as np
 from tqdm import tqdm
 from multi_person_tracker import MPT
 from torch.utils.data import DataLoader
+import json
+import pandas as pd
 
 from lib.models.vibe import VIBE_Demo
 from lib.utils.renderer import Renderer
@@ -46,7 +48,8 @@ from lib.utils.demo_utils import (
     images_to_video,
     download_ckpt,
 )
-
+bboxjson = 'bbox_data.json'
+new_json_file = [] 
 MIN_NUM_FRAMES = 25
 
 
@@ -128,10 +131,20 @@ def main(args):
 
         if args.tracking_method == 'bbox':
             bboxes = tracking_results[person_id]['bbox']
+            # print(bboxes)
+            # print('ssssuuuuuuuuuuuuuuuuuuuuuuuuuuckkkkkkkkkkkkkkkkk')
         elif args.tracking_method == 'pose':
             joints2d = tracking_results[person_id]['joints2d']
-
+            # print(joints2d)
+            # print('Fuuuuuuuuuuuuuuuuuuuuuuuuuuckkkkkkkkkkkkkkkkk')
+    
         frames = tracking_results[person_id]['frames']
+
+        # outputbbox_dict = {
+        #     'frame': person_id,
+        #     'bboxes': bboxes,
+        # }
+        # df = pd.DataFrame(outputbbox_dict)
 
         dataset = Inference(
             image_folder=image_folder,
@@ -140,6 +153,15 @@ def main(args):
             joints2d=joints2d,
             scale=bbox_scale,
         )
+
+        # print(dataset.bboxes)
+        # new_json_file.append(df)
+
+        # for i in  bboxes:
+        #     new_json_file.append(i)
+
+        
+        # print(new_json_file)
 
         bboxes = dataset.bboxes
         frames = dataset.frames
@@ -254,10 +276,21 @@ def main(args):
             'bboxes': bboxes,
             'frame_ids': frames,
         }
+        # print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+        # print('predict cam')
+        # print(output_dict['pred_cam'])
+        # print('predict ori')
+        # print(output_dict['orig_cam'])
 
         vibe_results[person_id] = output_dict
 
     del model
+
+    for i in new_json_file:
+        print(new_json_file(i))
+    # print(new_json_file)
+    # new_json_file.to_csv('bbox.csv')
+
 
     end = time.time()
     fps = num_frames / (end - vibe_time)
@@ -270,6 +303,7 @@ def main(args):
     print(f'Saving output results to \"{os.path.join(output_path, "vibe_output.pkl")}\".')
 
     joblib.dump(vibe_results, os.path.join(output_path, "vibe_output.pkl"))
+    
 
     if not args.no_render:
         # ========= Render results as a single video ========= #
@@ -282,6 +316,8 @@ def main(args):
 
         # prepare results for rendering
         frame_results = prepare_rendering_results(vibe_results, num_frames)
+        # print("frame results for render",frame_results )
+        # print("-----------------------------------------------------------------------------")
         mesh_color = {k: colorsys.hsv_to_rgb(np.random.rand(), 0.5, 1.0) for k in vibe_results.keys()}
 
         image_file_names = sorted([
