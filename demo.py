@@ -154,6 +154,17 @@ def main(args):
             scale=bbox_scale,
         )
 
+        json_file = {
+            
+            'frames':frames.tolist(),
+            'bboxes':bboxes.tolist(),
+            
+            'scale':bbox_scale
+        }
+
+        
+        new_json_file.append(json_file)
+
         # print(dataset.bboxes)
         # new_json_file.append(df)
 
@@ -276,6 +287,20 @@ def main(args):
             'bboxes': bboxes,
             'frame_ids': frames,
         }
+
+        # output_dict2 = {
+        #     'pred_cam': pred_cam.tolist(),
+        #     'orig_cam': orig_cam.tolist(),
+        #     'verts': pred_verts.tolist(),
+        #     'pose': pred_pose.tolist(),
+        #     'betas': pred_betas.tolist(),
+        #     'joints3d': pred_joints3d.tolist(),
+            
+        #     'joints2d_img_coord': joints2d_img_coord.tolist(),
+        #     'bboxes': bboxes.tolist(),
+        #     'frame_ids': frames.tolist(),
+      
+        # }
         # print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
         # print('predict cam')
         # print(output_dict['pred_cam'])
@@ -283,13 +308,18 @@ def main(args):
         # print(output_dict['orig_cam'])
 
         vibe_results[person_id] = output_dict
+        
 
     del model
+    #new_json_file2 = pd.Series(output_dict).to_json(orient='values')
+    
+    with open (bboxjson, 'w') as outfile:
+        json.dump(new_json_file, outfile, indent=2)
 
-    for i in new_json_file:
-        print(new_json_file(i))
-    # print(new_json_file)
-    # new_json_file.to_csv('bbox.csv')
+    # for i in new_json_file:
+    #     print(new_json_file(i))
+    # # print(new_json_file)
+    # # new_json_file.to_csv('bbox.csv')
 
 
     end = time.time()
