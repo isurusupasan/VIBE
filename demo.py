@@ -49,7 +49,9 @@ from lib.utils.demo_utils import (
     download_ckpt,
 )
 bboxjson = 'bbox_data.json'
+bboxjson2 = 'frame_bbox_data.json'
 new_json_file = [] 
+new_BF_json_file = []
 MIN_NUM_FRAMES = 25
 
 
@@ -87,6 +89,7 @@ def main(args):
         if not os.path.isabs(video_file):
             video_file = os.path.join(os.getcwd(), video_file)
         tracking_results = run_posetracker(video_file, staf_folder=args.staf_dir, display=args.display)
+
     else:
         # run multi object tracker
         mot = MPT(
@@ -98,7 +101,60 @@ def main(args):
             yolo_img_size=args.yolo_img_size,
         )
         tracking_results = mot(image_folder)
+    # print('======================================')
+    # print('size of trackins results', len(tracking_results))
+    # print('======================================')
 
+    new_frames= []
+    new_bbox = []
+    for id in list(tracking_results.keys()):
+        #print(tracking_results[id])
+        # print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        # print('len ', len(tracking_results[id]['frames']))
+        # print('id', id)
+        # print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        for i in range(len(tracking_results[id]['frames'])):
+            # print(tracking_results[id]['frames'][i],tracking_results[id]['bbox'][i])
+            for frame in range(num_frames):
+                if frame == tracking_results[id]['frames'][i]:
+                    new_frames.append(int(tracking_results[id]['frames'][i]))
+                    new_bbox.append(tuple(map(float, tracking_results[id]['bbox'][i])))
+
+    print('======================================')                
+    print('Length', len(new_frames))
+    print('bbox', len(new_bbox))
+    print('======================================')   
+
+    new_frames_json_file = {
+            "frames":new_frames,
+            "bboxes":new_bbox,
+            }
+    
+    #new_frames_json_file2 = json.dumps(new_frames_json_file,indent=2)
+    print('The json file', new_frames_json_file)
+
+
+    # #new_BF_json_file.append(new_frames_json_file)
+    with open (bboxjson2, 'w') as outfile:
+         json.dump(new_frames_json_file, outfile, indent=2)
+    #     json.dumps(new_frames_json_file, default=lambda x: list(x) if isinstance(x, tuple) else str(x), indent=2)
+    
+
+        # #print(frame)
+        # print('frames', tracking_results[id]["frames"])
+        # print('bbox', tracking_results[id]["bbox"])
+        # print("++++++++++++++++++++++++++++++")
+        # for detection_id, detection in enumerate(event["frames"]):
+        #     print("++++++++++++++++++++++++++++++")
+        #     print("frame numbers:", event['frames'])
+        #     print("++++++++++++++++++++++++++++++")
+        #     print('detection box', detetion_box)
+        #     print('Inside the box', tracking_results[id]["frames"])
+        #     print('box coordinates', tracking_results[id]["bbox"])
+            
+
+    
+    
     # remove tracklets if num_frames is less than MIN_NUM_FRAMES
     for person_id in list(tracking_results.keys()):
         if tracking_results[person_id]['frames'].shape[0] < MIN_NUM_FRAMES:
@@ -120,7 +176,7 @@ def main(args):
     ckpt = ckpt['gen_state_dict']
     model.load_state_dict(ckpt, strict=False)
     model.eval()
-    print(f'Loaded pretrained weights from \"{pretrained_file}\"')
+    print(f'Loaded Fdis weights from \"{pretrained_file}\"')
 
     # ========= Run VIBE on each person ========= #
     print(f'Running VIBE on each tracklet...')
@@ -153,13 +209,14 @@ def main(args):
             joints2d=joints2d,
             scale=bbox_scale,
         )
-
+        print('===================')
+        print(dataset)
+        # frame_number =  int(cap.get(cv2.CAP_PROP_POS_FRAMES))
         json_file = {
             
-            'frames':frames.tolist(),
-            'bboxes':bboxes.tolist(),
-            
-            'scale':bbox_scale
+            "frames":frames.tolist(),
+            "bboxes":bboxes.tolist(),
+
         }
 
         
@@ -308,6 +365,7 @@ def main(args):
         # print(output_dict['orig_cam'])
 
         vibe_results[person_id] = output_dict
+        print(vibe_results)
         
 
     del model
@@ -315,6 +373,8 @@ def main(args):
     
     with open (bboxjson, 'w') as outfile:
         json.dump(new_json_file, outfile, indent=2)
+
+
 
     # for i in new_json_file:
     #     print(new_json_file(i))
